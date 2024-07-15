@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/transaksi/transaksi.css') }}">
+    <title>Transaksi</title>
+</head>
+<body>
+    {% include "navbar.html" %}
+    
+    <div class="container">
+        <header>
+            <h1>Daftar Transaksi</h1>
+            <p>Lihat semua transaksi yang telah dilakukan</p>
+            <div class="add-bar">
+                <a href="{{url_for('transaksi_baru')}}" class="add-transaction">Tambah Transaksi Baru</a>
+            </div>
+        </header>
+
+        <main>
+            <h1>Daftar Transaksi</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID Transaksi</th>
+                        <th>Tanggal</th>
+                        <th>Total</th>
+                        <th>Pemilik/Karyawan</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaksi in transaksis %}
+                        <tr>
+                            <td>{{ transaksi.id }}</td>
+                            <td>{{ transaksi.tanggal }}</td>
+                            <td>{{ transaksi.total_harga }}</td>
+                            <td>{{ transaksi.user.nama_pemilik if transaksi.karyawan is none else transaksi.karyawan.nama_karyawan }}</td>
+                            <td>
+                                <a href="{{ url_for('transaksi_detail', transaksi_id=transaksi.id) }}" class="detail-btn">Detail</a>
+                                <form action="{{ url_for('delete_transaksi', transaksi_id=transaksi.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit">Hapus</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </main>
+    </div>
+</body>
+</html>

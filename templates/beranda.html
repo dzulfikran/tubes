@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/beranda.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Beranda</title>
+</head>
+<body>
+    {% include "navbar.html" %}
+    
+    <div class="container">
+        <header>
+            <h1>{{nama_toko}}</h1>
+            <p>Informasi penjualan harian dan bulanan</p>
+        </header>
+        <section class="transaction-summary">
+            <h2>Statistik Penjualan</h2>
+            <div class="stats">
+                <div>
+                    <h3>Penjualan Harian</h3>
+                    <p>Rp. {{ daily_sales }}</p>
+                    <p>{{ daily_increase }}</p>
+                </div>
+                <div>
+                    <h3>Penjualan Bulanan</h3>
+                    <p>Rp. {{ monthly_sales }}</p>
+                    <p>{{ monthly_increase }}</p>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

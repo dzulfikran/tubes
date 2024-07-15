@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pengaturan/profile.css') }}">
+    <title>Profile</title>
+</head>
+<body>
+    {% include "navbar.html" %}
+    <a href="{{url_for('pengaturan')}}" class="back-btn">Kembali</a>
+    <div class="main-container">
+        <h1>Profil Pengguna</h1>
+        <form action="" method="post">
+            <div class="profile-container">
+                {% if session['role'] == 'pemilik' %}
+                <img src="{{url_for('static', filename='profile-pic/'+ user.profile_pic)}}" alt="Foto Profil" class="profile-pic">
+                <div class="profile-details">
+                    <p><strong>Nama Toko :</strong> {{ user.nama_toko }}</p>
+                    <p><strong>Nama Pemilik :</strong> {{ user.nama_pemilik }}</p>
+                    <p><strong>Username :</strong> {{ user.username }}</p>
+                    <p><strong>Email :</strong> {{ user.email }}</p>
+                    <p><strong>No. HP :</strong> {{ user.phone }}</p>
+                    <a href="{{ url_for('edit_profile', user_id=user.id) }}" class="edit-btn">Edit Profil</a>
+                </div>
+                {% else %}
+                <img src="{{url_for('static', filename='profile-pic/'+ user.profile_pic)}}" alt="Foto Profil" class="profile-pic">
+                <div class="profile-details">
+                    <p><strong>Nama:</strong> {{ user.nama_karyawan }}</p>
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>No. HP:</strong> {{ user.phone }}</p>
+                    <a href="{{ url_for('edit_profile', user_id=user.id) }}" class="edit-btn">Edit Profil</a>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</body>

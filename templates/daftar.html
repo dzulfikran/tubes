@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halaman Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login-register.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <form action="{{ url_for('daftar') }}" method="post" enctype="multipart/form-data">
+                <h2>DAFTAR</h2>
+                <div class="profile-pic">
+                    <img src="{{ url_for('static', filename='images/alt-pic.jpg') }}" alt="Profile Picture" id="profileDisplay">
+                    <input type="file" name="profile_pic" id="profile_pic" accept="images/*" onchange="loadFile(event)">
+                    <label for="profile_pic">Pilih foto profile</label>
+                </div>
+                <label for="nama_toko">Nama Toko</label>
+                <input type="text" id="nama_toko" name="nama_toko" required>
+                
+                <label for="nama_pemilik">Nama Pemilik</label>
+                <input type="text" id="nama_pemilik" name="nama_pemilik" required>
+                
+                <label for="username">Username Pemilik</label>
+                <input type="text" id="username" name="username" required>
+                
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+                
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+                
+                <label for="phone">No. HP</label>
+                <input type="text" id="phone" name="phone" required>
+                
+                <button type="submit">Daftar</button>
+                <p>Sudah punya akun? <a href="{{ url_for('login') }}">LogIn</a></p>
+            </form>
+        </div>
+    </div>
+    <script>
+        function loadFile(event) {
+            const output = document.getElementById('profileDisplay');
+            output.src = URL.createObjectURL(event.target.files[0]);
+            output.onload = function() {
+                URL.revokeObjectURL(output.src)
+            }
+        }
+    </script>    
+</body>
+</html>

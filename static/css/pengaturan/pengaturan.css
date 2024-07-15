@@ -1,0 +1,110 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+.container {
+    width: 100%;
+    margin: auto;
+    overflow: hidden;
+}
+
+header {
+    background: #333;
+    color: #fff;
+    padding-bottom: 20px;
+    text-align: center;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+header p {
+    margin: 10px 0 20px;
+    font-size: 16px;
+}
+
+.formulir-pengaturan {
+    background: #fff;
+    color: #333;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.formulir-pengaturan h2 {
+    margin-top: 0;
+}
+
+.pengaturan-options {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin: 20px 0;
+}
+
+.pengaturan-item {
+    border: 1px solid #ddd;
+    padding: 20px;
+    width: 30%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    text-align: center;
+    text-decoration: none;
+    color: black;
+}
+
+.pengaturan-item .icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.pengaturan-item p {
+    margin: 0;
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+    .container {
+        width: 100%;
+    }
+
+    header h1 {
+        font-size: 20px;
+    }
+
+    .pengaturan-item {
+        width: 45%;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 18px;
+    }
+
+    header p {
+        font-size: 12px;
+    }
+
+    .pengaturan-item {
+        width: 100%;
+    }
+
+    .pengaturan-item .icon, 
+    .pengaturan-item p {
+        font-size: 14px;
+    }
+}
