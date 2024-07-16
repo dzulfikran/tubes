@@ -15,12 +15,13 @@
             <nav>
                 <ul class="nav-links" id="nav-links">
                     <li><a href="{{url_for('beranda')}}">Beranda</a></li>
-                    <li><a href="{{url_for('transaksi_list')}}">Transaksi</a></li>
+                    <li><a href="{{url_for('transaksi_list')}}">Penjualan</a></li>
+                    <li><a href="{{url_for('transaksi_list_pembelian')}}">Pembelian</a></li>
                     <li><a href="{{url_for('produk')}}">Produk</a></li>
-                    <li><a href="{{url_for('pengaturan')}}">Pengaturan</a></li>
                     {% if session['role'] == 'pemilik' %}
                     <li><a href="{{url_for('daftar_karyawan')}}">Karyawan</a></li>
                     {% endif %}
+                    <li><a href="{{url_for('pengaturan')}}">Pengaturan</a></li>
                 </ul>
             </nav>
             <div class="search-container">

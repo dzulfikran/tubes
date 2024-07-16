@@ -16,17 +16,47 @@
             <p>Informasi penjualan harian dan bulanan</p>
         </header>
         <section class="transaction-summary">
-            <h2>Statistik Penjualan</h2>
+            <h2>Pemasukan</h2>
             <div class="stats">
                 <div>
-                    <h3>Penjualan Harian</h3>
+                    <h3>Pemasukan Harian</h3>
                     <p>Rp. {{ daily_sales }}</p>
                     <p>{{ daily_increase }}</p>
                 </div>
                 <div>
-                    <h3>Penjualan Bulanan</h3>
+                    <h3>Pemasukan Bulanan</h3>
                     <p>Rp. {{ monthly_sales }}</p>
                     <p>{{ monthly_increase }}</p>
+                </div>
+            </div>
+        </section>
+        <section class="transaction-summary">
+            <h2>Pengeluaran</h2>
+            <div class="stats">
+                <div>
+                    <h3>Pengeluaran Harian</h3>
+                    <p>Rp. {{ daily_purchases }}</p>
+                    <p>{{ daily_purchases_increase }}</p>
+                </div>
+                <div>
+                    <h3>Pengeluaran Bulanan</h3>
+                    <p>Rp. {{ monthly_purchases }}</p>
+                    <p>{{ monthly_purchases_increase }}</p>
+                </div>
+            </div>
+        </section>
+        <section class="transaction-summary">
+            <h2>Laba Bersih</h2>
+            <div class="stats">
+                <div>
+                    <h3>Laba Bersih Harian</h3>
+                    <p>Rp. {{ daily_profit }}</p>
+                    <p>{{ daily_profit_increase }}</p>
+                </div>
+                <div>
+                    <h3>Laba Bersih Bulanan</h3>
+                    <p>Rp. {{ monthly_profit }}</p>
+                    <p>{{ monthly_profit_increase }}</p>
                 </div>
             </div>
         </section>

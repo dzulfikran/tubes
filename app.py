@@ -3,7 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime, timedelta
-from models import db, User, Product, Karyawan, Transaksi, DetailTransaksi
+from models import db, User, Karyawan, Product, TransaksiPenjualan, DetailTransaksiPenjualan, TransaksiPembelian, DetailTransaksiPembelian
 from config import Config
 from sqlalchemy import func
 import calendar
@@ -20,7 +20,6 @@ with app.app_context():
 @app.route('/')
 def index():
     return render_template('login_pemilik.html')
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -105,31 +104,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-@app.route('/filter_sales/monthly')
-def filter_sales_monthly():
-    month = request.args.get('month', type=int)
-    year = request.args.get('year', type=int)
-
-    if not month or not year:
-        return jsonify({'error': 'Month and year parameters are required'}), 400
-
-    start_date = datetime(year, month, 1)
-    end_date = datetime(year, month, calendar.monthrange(year, month)[1])
-
-    transactions = Transaksi.query.filter(Transaksi.tanggal.between(start_date, end_date)).all()
-
-    daily_sales = {}
-    for transaction in transactions:
-        date_str = transaction.tanggal.strftime('%Y-%m-%d')
-        if date_str not in daily_sales:
-            daily_sales[date_str] = 0
-        daily_sales[date_str] += transaction.total_harga
-
-    labels = list(daily_sales.keys())
-    values = list(daily_sales.values())
-
-    return jsonify(labels=labels, values=values)
-
 @app.route("/beranda")
 def beranda():
     if 'user_id' in session:
@@ -145,59 +119,154 @@ def beranda():
             else:
                 nama_toko = 'Toko Tidak Diketahui'
 
-        # Fetching daily and monthly sales summary
-        today = datetime.today().date()
-        start_of_month = today.replace(day=1)
+    # Pemasukan dan pengeluaran
+    today = datetime.today().date()
+    start_of_month = today.replace(day=1)
+    
+    if 'user_id' in session:
+        user_id = session.get('user_id')
+        role = session.get('role')
+        user = User.query.get(user_id)
+        if role == 'pemilik':
+            user_filter = TransaksiPenjualan.user_id == user.id
+            user_filter_pembelian = TransaksiPembelian.user_id == user.id
+        else:
+            karyawan = Karyawan.query.filter_by(id=user.id).first()
+            user_filter = TransaksiPenjualan.user_id == karyawan.owner_id
+            user_filter_pembelian =  TransaksiPembelian.user_id == karyawan.owner_id 
+    
+        # Pemasukan
+        daily_sales = db.session.query(func.sum(TransaksiPenjualan.total_harga)) \
+                                .filter(TransaksiPenjualan.tanggal == today, user_filter).scalar() or 0
+        monthly_sales = db.session.query(func.sum(TransaksiPenjualan.total_harga)) \
+                                .filter(TransaksiPenjualan.tanggal >= start_of_month, user_filter).scalar() or 0
 
-        daily_sales = db.session.query(func.sum(Transaksi.total_harga)).filter(Transaksi.tanggal == today).scalar() or 0
-        monthly_sales = db.session.query(func.sum(Transaksi.total_harga)).filter(Transaksi.tanggal >= start_of_month).scalar() or 0
-
-        # Assuming daily and monthly sales increase is calculated similarly
         yesterday = today - timedelta(days=1)
         previous_month_start = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
         
-        daily_sales_yesterday = db.session.query(func.sum(Transaksi.total_harga)).filter(Transaksi.tanggal == yesterday).scalar() or 0
-        monthly_sales_last_month = db.session.query(func.sum(Transaksi.total_harga)).filter(
-            Transaksi.tanggal >= previous_month_start,
-            Transaksi.tanggal < start_of_month
-        ).scalar() or 0
+        daily_sales_yesterday = db.session.query(func.sum(TransaksiPenjualan.total_harga)) \
+                                        .filter(TransaksiPenjualan.tanggal == yesterday, user_filter).scalar() or 0
+        monthly_sales_last_month = db.session.query(func.sum(TransaksiPenjualan.total_harga)) \
+                                            .filter(TransaksiPenjualan.tanggal >= previous_month_start,
+                                                    TransaksiPenjualan.tanggal < start_of_month, 
+                                                    user_filter).scalar() or 0
 
-        daily_increase = ((daily_sales - daily_sales_yesterday) / daily_sales_yesterday * 100) if daily_sales_yesterday != 0 else 0
+        if daily_sales_yesterday != 0:
+            daily_increase = ((daily_sales - daily_sales_yesterday) / daily_sales_yesterday * 100)
+        else:
+            daily_increase = 0
+
         daily_increase = f"{daily_increase:.2f}%"
+
         if daily_sales > daily_sales_yesterday:
             daily_increase = f"+{daily_increase}"
         elif daily_sales < daily_sales_yesterday:
             daily_increase = f"{daily_increase}"
-        
-        monthly_increase = ((monthly_sales - monthly_sales_last_month) / monthly_sales_last_month * 100) if monthly_sales_last_month != 0 else 0
+
+        if monthly_sales_last_month != 0:
+            monthly_increase = ((monthly_sales - monthly_sales_last_month) / monthly_sales_last_month * 100)
+        else:
+            monthly_increase = 0
+
         monthly_increase = f"{monthly_increase:.2f}%"
+
         if monthly_sales > monthly_sales_last_month:
             monthly_increase = f"+{monthly_increase}"
         elif monthly_sales < monthly_sales_last_month:
             monthly_increase = f"{monthly_increase}"
+
+        # Pengeluaran
+        daily_purchases = db.session.query(func.sum(TransaksiPembelian.total_harga)) \
+                                .filter(TransaksiPembelian.tanggal == today, user_filter_pembelian).scalar() or 0
+        monthly_purchases = db.session.query(func.sum(TransaksiPembelian.total_harga)) \
+                                .filter(TransaksiPembelian.tanggal >= start_of_month, user_filter_pembelian).scalar() or 0
+
+        yesterday = today - timedelta(days=1)
+        previous_month_start = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
         
-        return render_template('beranda.html', nama_toko=nama_toko, daily_sales=daily_sales, daily_increase=daily_increase,
-                           monthly_sales=monthly_sales, monthly_increase=monthly_increase)
+        daily_purchases_yesterday = db.session.query(func.sum(TransaksiPembelian.total_harga)) \
+                                        .filter(TransaksiPembelian.tanggal == yesterday, user_filter_pembelian).scalar() or 0
+        monthly_purchases_last_month = db.session.query(func.sum(TransaksiPembelian.total_harga)) \
+                                            .filter(TransaksiPembelian.tanggal >= previous_month_start,
+                                                    TransaksiPembelian.tanggal < start_of_month, 
+                                                    user_filter).scalar() or 0
+
+        if daily_purchases_yesterday != 0:
+            daily_purchases_increase = ((daily_purchases - daily_purchases_yesterday) / daily_purchases_yesterday * 100)
+        else:
+            daily_purchases_increase = 0
+
+        daily_purchases_increase = f"{daily_purchases_increase:.2f}%"
+
+        if daily_purchases > daily_purchases_yesterday:
+            daily_purchases_increase = f"+{daily_purchases_increase}"
+        elif daily_purchases < daily_purchases_yesterday:
+            daily_purchases_increase = f"{daily_purchases_increase}"
+
+        if monthly_purchases_last_month != 0:
+            monthly_purchases_increase = ((monthly_purchases - monthly_purchases_last_month) / monthly_purchases_last_month * 100)
+        else:
+            monthly_purchases_increase = 0
+
+        monthly_purchases_increase = f"{monthly_purchases_increase:.2f}%"
+
+        if monthly_purchases > monthly_purchases_last_month:
+            monthly_purchases_increase = f"+{monthly_purchases_increase}"
+        elif monthly_purchases < monthly_purchases_last_month:
+            monthly_purchases_increase = f"{monthly_purchases_increase}"
+
+        # Laba Bersih
+        daily_profit = daily_sales - daily_purchases
+        daily_profit_yesterday = daily_sales_yesterday - daily_purchases_yesterday
+        monthly_profit = monthly_sales - monthly_purchases
+        monthly_profit_last_month = monthly_sales_last_month - monthly_purchases_last_month
+
+        if daily_profit_yesterday != 0:
+            daily_profit_increase = ((daily_profit - daily_profit_yesterday) / daily_profit_yesterday * 100)
+        else:
+            daily_profit_increase = 0
+
+        daily_profit_increase = f"{daily_profit_increase:.2f}%"
+
+        if daily_profit > daily_profit_yesterday:
+            daily_profit_increase = f"+{daily_profit_increase}"
+        elif daily_profit < daily_profit_yesterday:
+            daily_profit_increase = f"{daily_profit_increase}"
+
+        if monthly_profit_last_month != 0:
+            monthly_profit_increase = ((monthly_profit - monthly_profit_last_month) / monthly_profit_last_month * 100)
+        else:
+            monthly_profit_increase = 0
+
+        monthly_profit_increase = f"{monthly_profit_increase:.2f}%"
+
+        if monthly_profit > monthly_profit_last_month:
+            monthly_profit_increase = f"+{monthly_profit_increase}"
+        elif monthly_profit < monthly_profit_last_month:
+            monthly_profit_increase = f"{monthly_profit_increase}"
+        
+        return render_template('beranda.html', nama_toko=nama_toko,
+                           daily_sales=daily_sales, daily_increase=daily_increase,
+                           monthly_sales=monthly_sales, monthly_increase=monthly_increase,
+                           daily_purchases=daily_purchases, daily_purchases_increase=daily_purchases_increase,
+                           monthly_purchases=monthly_purchases, monthly_purchases_increase=monthly_purchases_increase,
+                           daily_profit=daily_profit, daily_profit_increase=daily_profit_increase,
+                           monthly_profit=monthly_profit, monthly_profit_increase=monthly_profit_increase)
     return redirect(url_for('login'))
 
-#Transaksi
-# @app.route('/transaksi_list')
-# def transaksi_list():
-#     transaksis = Transaksi.query.all()
-#     return render_template('transaksi/transaksi.html', transaksis=transaksis)
-
-@app.route('/transaksi_list')
+#Transaksi Penjualan
+@app.route('/transaksi-list-penjualan')
 def transaksi_list():
     if 'user_id' in session:
         user_id = session.get('user_id')
         role = session.get('role')
         user = User.query.get(user_id)
         if role == 'pemilik':
-            transaksis = Transaksi.query.filter_by(user_id=user.id).all()
+            transaksis = TransaksiPenjualan.query.filter_by(user_id=user.id).all()
         else:
             karyawan = Karyawan.query.filter_by(id=user.id).first()
-            transaksis = Transaksi.query.filter_by(user_id=karyawan.owner_id).all()
-    return render_template('transaksi/transaksi.html', transaksis=transaksis)
+            transaksis = TransaksiPenjualan.query.filter_by(user_id=karyawan.owner_id).all()
+    return render_template('transaksi_penjualan/transaksi.html', transaksis=transaksis)
 
 @app.route('/transaksi_baru', methods=['GET', 'POST'])
 def transaksi_baru():
@@ -228,7 +297,7 @@ def transaksi_baru():
             return redirect(url_for('transaksi_list'))
 
         try:
-            transaksi = Transaksi(user_id=user_id, karyawan_id=karyawan_id, total_harga=total_amount, tanggal=tanggal)
+            transaksi = TransaksiPenjualan(user_id=user_id, karyawan_id=karyawan_id, total_harga=total_amount, tanggal=tanggal)
             db.session.add(transaksi)
             db.session.flush()
 
@@ -255,7 +324,7 @@ def transaksi_baru():
                 subtotal = product_obj.price * quantity
                 total_amount += subtotal
 
-                detail = DetailTransaksi(transaksi_id=transaksi.id, product_id=product_id, jumlah=quantity, subtotal=subtotal)
+                detail = DetailTransaksiPenjualan(transaksi_id=transaksi.id, product_id=product_id, jumlah=quantity, subtotal=subtotal)
                 details.append(detail)
                 product_obj.stock -= quantity
                 db.session.add(product_obj)
@@ -275,19 +344,19 @@ def transaksi_baru():
             return redirect(url_for('transaksi_baru'))
 
     products = Product.query.all()
-    return render_template('transaksi/transaksi_baru.html', products=products)
+    return render_template('transaksi_penjualan/transaksi_baru.html', products=products)
 
-@app.route('/transaksi/<int:transaksi_id>', methods=['GET', 'POST'])
+@app.route('/transaksi-penjualan/<int:transaksi_id>', methods=['GET', 'POST'])
 def transaksi_detail(transaksi_id):
-    transaksi = Transaksi.query.get_or_404(transaksi_id)
+    transaksi = TransaksiPenjualan.query.get_or_404(transaksi_id)
     products = Product.query.all()
-    details = transaksi.details
-    return render_template('transaksi/detail_transaksi.html', transaksi=transaksi, details=details, products=products)
+    details = transaksi.details_penjualan
+    return render_template('transaksi_penjualan/detail_transaksi.html', transaksi=transaksi, details=details, products=products)
 
-@app.route('/transaksi/edit/<int:detail_id>', methods=['GET', 'POST'])
+@app.route('/transaksi-penjualan/edit/<int:detail_id>', methods=['GET', 'POST'])
 def edit_detail(detail_id):
-    detail = DetailTransaksi.query.get_or_404(detail_id)
-    transaksi = Transaksi.query.get(detail.transaksi_id)
+    detail = DetailTransaksiPenjualan.query.get_or_404(detail_id)
+    transaksi = TransaksiPenjualan.query.get(detail.transaksi_id)
     user_id = session.get('user_id') or session.get('owner_id')
     user = None
     
@@ -326,12 +395,12 @@ def edit_detail(detail_id):
             flash(f'Error: {str(e)}', 'danger')
             return redirect(url_for('edit_detail', detail_id=detail.id))
 
-    return render_template('transaksi/edit_detail_transaksi.html', detail=detail, product=product)
+    return render_template('transaksi_penjualan/edit_detail_transaksi.html', detail=detail, product=product)
 
-@app.route('/transaksi/delete_detail/<int:detail_id>', methods=['POST'])
+@app.route('/transaksi-penjualan/delete_detail/<int:detail_id>', methods=['POST'])
 def delete_detail(detail_id):
-    detail = DetailTransaksi.query.get_or_404(detail_id)
-    transaksi = Transaksi.query.get(detail.transaksi_id)
+    detail = DetailTransaksiPenjualan.query.get_or_404(detail_id)
+    transaksi = TransaksiPenjualan.query.get(detail.transaksi_id)
     user_id = session.get('user_id') or session.get('owner_id')
     user = None
 
@@ -363,10 +432,224 @@ def delete_detail(detail_id):
         db.session.rollback()
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('transaksi_detail', transaksi_id=detail.transaksi_id))
-    
-@app.route('/transaksi/delete/<int:transaksi_id>', methods=['POST'])
+
+@app.route('/transaksi-penjualan/delete/<int:transaksi_id>', methods=['POST'])
 def delete_transaksi(transaksi_id):
-    transaksi = Transaksi.query.get_or_404(transaksi_id)
+    transaksi = TransaksiPenjualan.query.get_or_404(transaksi_id)
+    user_id = session.get('user_id') or session.get('owner_id')
+    user = None
+
+    if session.get('role') == 'pemilik':
+        user = User.query.get(user_id)
+    elif session.get('role') == 'karyawan':
+        user = Karyawan.query.get(user_id)
+
+    if not user:
+        flash('User tidak valid.', 'danger')
+        return redirect(url_for('login'))
+
+    # Check if the user has the right role or is the owner of the transaction
+    if (session.get('role') == 'karyawan' and transaksi.karyawan_id != user_id):
+        flash('Anda tidak memiliki hak akses untuk menghapus transaksi ini.', 'danger')
+        return redirect(url_for('transaksi_list'))
+
+    try:
+        # Return product stock to the original amount
+        for detail in transaksi.details_penjualan:
+            product = Product.query.get(detail.product_id)
+            product.stock += detail.jumlah
+            db.session.delete(detail)
+        
+        db.session.delete(transaksi)
+        db.session.commit()
+
+        flash('Transaksi berhasil dihapus!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
+
+    return redirect(url_for('transaksi_list'))
+
+#Transaksi Pembelian
+@app.route('/transaksi_list-pembelian')
+def transaksi_list_pembelian():
+    if 'user_id' in session:
+        user_id = session.get('user_id')
+        role = session.get('role')
+        user = User.query.get(user_id)
+        if role == 'pemilik':
+            transaksis = TransaksiPembelian.query.filter_by(user_id=user.id).all()
+        else:
+            karyawan = Karyawan.query.filter_by(id=user.id).first()
+            transaksis = TransaksiPembelian.query.filter_by(user_id=karyawan.owner_id).all()
+    return render_template('transaksi_pembelian/transaksi.html', transaksis=transaksis)
+
+@app.route('/transaksi-pembelian_baru', methods=['GET', 'POST'])
+def transaksi_pembelian_baru():
+    if request.method == 'POST':
+        user_id = session.get('user_id')
+        karyawan_id = session.get('karyawan_id')
+        role = session.get('role')
+        total_amount = 0
+        tanggal = request.form.get('tanggal')
+
+        if not user_id:
+            flash('User tidak ditemukan. Silakan login ulang.', 'danger')
+            return redirect(url_for('login'))
+
+        if role == 'pemilik':
+            user = User.query.get(user_id)
+            if not user:
+                flash('User tidak valid.', 'danger')
+                return redirect(url_for('login'))
+        elif role == 'karyawan':
+            karyawan = Karyawan.query.get(user_id)
+            if not karyawan:
+                flash('Karyawan tidak valid.', 'danger')
+                return redirect(url_for('login'))
+            user_id = karyawan.owner_id
+        else:
+            flash('Anda tidak memiliki hak akses untuk menambahkan transaksi.', 'danger')
+            return redirect(url_for('transaksi_list_pembelian'))
+
+        try:
+            transaksi = TransaksiPembelian(user_id=user_id, karyawan_id=karyawan_id, total_harga=total_amount, tanggal=tanggal)
+            db.session.add(transaksi)
+            db.session.flush()
+
+            # Process products
+            products = request.form.getlist('products[][product_id]')
+            quantities = request.form.getlist('products[][quantity]')
+
+            details = []
+            for i in range(len(products)):
+                product_id = products[i]
+                quantity = quantities[i]
+
+                if not product_id or not quantity:
+                    continue
+
+                product_id = int(product_id)
+                quantity = int(quantity)
+                product_obj = Product.query.get(product_id)
+                if not product_obj:
+                    raise ValueError(f'Produk dengan ID {product_id} tidak ditemukan.')
+
+                subtotal = product_obj.harga_beli * quantity
+                total_amount += subtotal
+
+                detail = DetailTransaksiPembelian(transaksi_id=transaksi.id, product_id=product_id, jumlah=quantity, subtotal=subtotal)
+                details.append(detail)
+                product_obj.stock += quantity
+                db.session.add(product_obj)
+
+            for detail in details:
+                db.session.add(detail)
+
+            transaksi.total_harga = total_amount
+            db.session.commit()
+
+            flash('Transaksi berhasil ditambahkan!', 'success')
+            return redirect(url_for('transaksi_list_pembelian'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {str(e)}', 'danger')
+            return redirect(url_for('transaksi_baru'))
+
+    products = Product.query.all()
+    return render_template('transaksi_pembelian/transaksi_baru.html', products=products)
+
+@app.route('/transaksi-pembelian/<int:transaksi_id>', methods=['GET', 'POST'])
+def transaksi_detail_pembelian(transaksi_id):
+    transaksi = TransaksiPembelian.query.get_or_404(transaksi_id)
+    products = Product.query.all()
+    details = transaksi.details_pembelian
+    return render_template('transaksi_pembelian/detail_transaksi.html', transaksi=transaksi, details=details, products=products)
+
+@app.route('/transaksi-pembelian/edit/<int:detail_id>', methods=['GET', 'POST'])
+def edit_detail_pembelian(detail_id):
+    detail = DetailTransaksiPembelian.query.get_or_404(detail_id)
+    transaksi = TransaksiPembelian.query.get(detail.transaksi_id)
+    user_id = session.get('user_id') or session.get('owner_id')
+    user = None
+    
+    if session.get('role') == 'pemilik':
+        user = User.query.get(user_id)
+    elif session.get('role') == 'karyawan':
+        user = Karyawan.query.get(user_id)
+
+    if not user:
+        flash('User tidak valid.', 'danger')
+        return redirect(url_for('login'))
+
+    if (session.get('role') == 'karyawan' and transaksi.karyawan_id != user_id):
+        flash('Anda tidak memiliki hak akses untuk mengedit detail transaksi ini.', 'danger')
+        return redirect(url_for('transaksi_list_pembelian'))
+
+    original_jumlah = detail.jumlah
+    product = Product.query.get(detail.product_id)
+
+    if request.method == 'POST':
+        try:
+            new_jumlah = int(request.form['jumlah'])
+            jumlah_diff = original_jumlah -new_jumlah
+            detail.jumlah = new_jumlah
+            detail.subtotal = product.harga_beli * new_jumlah
+            product.stock -= jumlah_diff
+            transaksi.total_harga -= (jumlah_diff * product.harga_beli)
+
+            db.session.commit()
+
+            flash('Detail transaksi berhasil diperbarui!', 'success')
+            return redirect(url_for('transaksi_detail_pembelian', transaksi_id=detail.transaksi_id))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {str(e)}', 'danger')
+            return redirect(url_for('edit_detail_pembelian', detail_id=detail.id))
+
+    return render_template('transaksi_pembelian/edit_detail_transaksi.html', detail=detail, product=product)
+    
+@app.route('/transaksi-pembelian/delete_detail/<int:detail_id>', methods=['POST'])
+def delete_detail_pembelian(detail_id):
+    detail = DetailTransaksiPembelian.query.get_or_404(detail_id)
+    transaksi = TransaksiPembelian.query.get(detail.transaksi_id)
+    user_id = session.get('user_id') or session.get('owner_id')
+    user = None
+
+    if session.get('role') == 'pemilik':
+        user = User.query.get(user_id)
+    elif session.get('role') == 'karyawan':
+        user = Karyawan.query.get(user_id)
+
+    if not user:
+        flash('User tidak valid.', 'danger')
+        return redirect(url_for('login'))
+
+    if (session.get('role') == 'karyawan' and transaksi.karyawan_id != user_id):
+        flash('Anda tidak memiliki hak akses untuk menghapus detail transaksi ini.', 'danger')
+        return redirect(url_for('transaksi_list_pembelian'))
+
+    try:
+        product = Product.query.get(detail.product_id)
+        product.stock -= detail.jumlah
+        transaksi.total_harga -= detail.subtotal
+
+        db.session.delete(detail)
+        db.session.commit()
+
+        flash('Detail transaksi berhasil dihapus!', 'success')
+        return redirect(url_for('transaksi_detail_pembelian', transaksi_id=detail.transaksi_id))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('transaksi_detail_pembelian', transaksi_id=detail.transaksi_id))
+
+@app.route('/transaksi-pembelian/delete/<int:transaksi_id>', methods=['POST'])
+def delete_transaksi_pembelian(transaksi_id):
+    transaksi = TransaksiPembelian.query.get_or_404(transaksi_id)
     user_id = session.get('user_id') or session.get('owner_id')
     user = None
 
@@ -381,13 +664,13 @@ def delete_transaksi(transaksi_id):
 
     if (session.get('role') == 'karyawan' and transaksi.karyawan_id != user_id):
         flash('Anda tidak memiliki hak akses untuk menghapus transaksi ini.', 'danger')
-        return redirect(url_for('transaksi_list'))
+        return redirect(url_for('transaksi_list_pembelian'))
 
     try:
-        for detail in transaksi.details:
+        for detail in transaksi.details_pembelian:
             product = Product.query.get(detail.product_id)
             if product:
-                product.stock += detail.jumlah
+                product.stock -= detail.jumlah
                 db.session.delete(detail)
         
         db.session.delete(transaksi)
@@ -398,46 +681,37 @@ def delete_transaksi(transaksi_id):
         db.session.rollback()
         flash(f'Error: {str(e)}', 'danger')
 
-    return redirect(url_for('transaksi_list'))
-
-# @app.route('/transaksi/delete/<int:transaksi_id>', methods=['POST'])
-# def delete_transaksi(transaksi_id):
-#     transaksi = Transaksi.query.get_or_404(transaksi_id)
-#     user_id = session.get('user_id') or session.get('owner_id')
-#     user = None
-
-#     if session.get('role') == 'pemilik':
-#         user = User.query.get(user_id)
-#     elif session.get('role') == 'karyawan':
-#         user = Karyawan.query.get(user_id)
-
-#     if not user:
-#         flash('User tidak valid.', 'danger')
-#         return redirect(url_for('login'))
-
-#     # Check if the user has the right role or is the owner of the transaction
-#     if (session.get('role') == 'karyawan' and transaksi.karyawan_id != user_id):
-#         flash('Anda tidak memiliki hak akses untuk menghapus transaksi ini.', 'danger')
-#         return redirect(url_for('transaksi_list'))
-
-#     try:
-#         # Return product stock to the original amount
-#         for detail in transaksi.details:
-#             product = Product.query.get(detail.product_id)
-#             product.stock += detail.jumlah
-#             db.session.delete(detail)
-        
-#         db.session.delete(transaksi)
-#         db.session.commit()
-
-#         flash('Transaksi berhasil dihapus!', 'success')
-#     except Exception as e:
-#         db.session.rollback()
-#         flash(str(e), 'danger')
-
-#     return redirect(url_for('transaksi_list'))
+    return redirect(url_for('transaksi_list_pembelian'))
 
 #Produk
+@app.route('/product_search', methods=['GET'])
+def product_search():
+    query = request.args.get('q', '')
+    if 'user_id' not in session:
+        return jsonify([]), 403  # Return an empty list and forbidden status if user is not logged in
+
+    user_id = session.get('user_id')
+    role = session.get('role')
+    
+    if role == 'pemilik':
+        user = User.query.get(user_id)
+        if user:
+            products = Product.query.filter(Product.name.ilike(f'%{query}%'), Product.user_id == user.id).all()
+        else:
+            return jsonify([]), 404  # User not found
+    else:
+        karyawan = Karyawan.query.filter_by(id=user_id).first()
+        if karyawan:
+            products = Product.query.filter(Product.name.ilike(f'%{query}%'), Product.user_id == karyawan.owner_id).all()
+        else:
+            return jsonify([]), 404  # Karyawan not found
+
+    results = [
+        {'id': product.id, 'name': product.name, 'stock': product.stock}
+        for product in products
+    ]
+    return jsonify(results)
+
 @app.route("/produk")
 def produk():
     if 'user_id' in session:
@@ -463,8 +737,8 @@ def edit_product(product_id):
     if request.method == 'POST':
         product.name = request.form['name']
         product.description = request.form['description']
+        product.harga_beli = float(request.form['harga_beli'])
         product.price = float(request.form['price'])
-        product.stock = int(request.form['stock'])
         product.category = request.form['category']
         
         if 'image' in request.files:
@@ -486,14 +760,14 @@ def new_product():
         if request.method == 'POST':
             name = request.form['name']
             description = request.form['description']
+            harga_beli = float(request.form['harga_beli'])
             price = float(request.form['price'])
-            stock = int(request.form['stock'])
             category = request.form['category']
             image_file = request.files['image']
             image_filename = secure_filename(image_file.filename)
             image_file.save(os.path.join('static/product_images', image_filename))
 
-            new_product = Product(name=name, description=description, price=price, stock=stock, category=category, image=image_filename, user_id=session['user_id'])
+            new_product = Product(name=name, description=description, harga_beli=harga_beli, price=price, category=category, image=image_filename, user_id=session['user_id'])
             db.session.add(new_product)
             db.session.commit()
             flash('Product added successfully!', 'success')

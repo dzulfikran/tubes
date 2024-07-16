@@ -19,7 +19,8 @@
                 <img src="{{ url_for('static', filename='product_images/' + product.image) }}" alt="{{ product.name }}">
                 <h2>{{ product.name }}</h2>
                 <p>{{ product.description }}</p>
-                <p>Harga: {{ product.price }}</p>
+                <p>Harga Beli : {{ product.harga_beli }}</p>
+                <p>Harga Jual : {{ product.price }}</p>
                 <p>Stok: {{ product.stock }}</p>
                 <a href="{{ url_for('edit_product', product_id=product.id) }}" class="btn">Edit Produk</a>
                 <form action="{{ url_for('delete_product', product_id=product.id) }}" method="post" style="display: flex;">
