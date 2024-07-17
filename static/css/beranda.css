@@ -1,0 +1,148 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+.container {
+    width: 100%;
+    margin: auto;
+    overflow: hidden;
+}
+
+header {
+    background: #333;
+    color: #fff;
+    /* padding-top: 30px; */
+    padding-bottom: 20px;
+    min-height: 70px;
+    /* border-bottom: #77aaff 3px solid; */
+    text-align: center;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+    padding-bottom: 10px;
+}
+
+header p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.transaction-summary {
+    background: #fff;
+    color: #333;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.transaction-summary h2 {
+    margin-top: 0;
+}
+
+.transaction-summary .stats {
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.transaction-summary .stats div {
+    border: 1px solid #ddd;
+    padding: 10px;
+    width: 45%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.transaction-summary .stats div h3 {
+    margin: 0;
+}
+
+.transaction-summary .stats div p {
+    margin: 10px 0;
+    font-size: 24px;
+}
+
+section.chart {
+    background-color: #ffffff;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+section.chart h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #343a40;
+}
+
+.chart {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.chart h2 {
+    margin-bottom: 20px;
+}
+
+canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+.grafik {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.grafik-item {
+    border: 1px solid #ddd;
+    padding: 20px;
+    width: 75%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+    .container {
+        width: 100%;
+    }
+
+    header h1 {
+        font-size: 20px;
+    }
+
+    .grafik-item{
+        width: 90%;
+    }
+
+    .transaction-summary .stats div {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 18px;
+    }
+
+    header p {
+        font-size: 12px;
+    }
+
+    .transaction-summary .stats div p {
+        font-size: 20px;
+    }
+
+}

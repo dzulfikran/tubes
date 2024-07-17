@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/transaksi/transaksi.css') }}"> -->
+    <style>
+        header {
+            background: #333;
+            color: #fff;
+            padding-bottom: 20px;
+            text-align: center;
+        }
+        
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        header p {
+            margin: 10px 0 20px;
+            font-size: 16px;
+        }
+        
+        .add-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-direction: column;
+        }
+        
+        .add-transaction {
+            text-decoration: none;
+            padding: 10px 20px;
+            background-color: #fff;
+            color: #333;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;   
+        }
+        main {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        button {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button[type="submit"] {
+            width: auto;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    <title>Edit Transaksi</title>
+</head>
+<body>
+    {% include "navbar.html" %}
+    
+    <div class="container">
+        <header>
+            <h1>Edit Detail Transaksi</h1>
+            <p>Edit detail transaksi yang telah dilakukan</p>
+            <div class="add-bar">
+                <a href="{{ url_for('transaksi_detail', transaksi_id=detail.transaksi_id) }}" class="add-transaction">Kembali Ke Detail Transaksi</a>
+            </div>
+        </header>
+
+        <main>
+            <form action="{{ url_for('edit_detail', detail_id=detail.id) }}" method="post">
+                <label for="product">Produk:</label>
+                <input type="text" id="product" name="product_name" readonly value="{{ product.name }}">
+                <select id="product" name="product_id" hidden>
+                    <option value="{{ product.id }}">{{ product.name }}</option>
+                </select>
+        
+                <label for="quantity">Jumlah:</label>
+                <input type="number" id="quantity" name="jumlah" value="{{ detail.jumlah }}" min="1" required>
+        
+                <button type="submit">Simpan Perubahan</button>
+            </form>
+        </main>
+        
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('form');
+            const quantityInput = document.getElementById('quantity');
+        
+            form.addEventListener('submit', function (event) {
+                if (quantityInput.value < 1) {
+                    event.preventDefault();
+                    alert('Jumlah harus lebih besar dari 0');
+                }
+            });
+        });
+        
+    </script>
+</body>
+</html>

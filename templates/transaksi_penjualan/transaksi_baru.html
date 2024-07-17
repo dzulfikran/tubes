@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/transaksi/transaksi_baru.css') }}">
+    <title>Transaksi Baru</title>
+</head>
+<body>
+    
+    <div class="container">
+        <header>
+            <h1>Transaksi Penjualan Baru</h1>
+            <p>Tambah transaksi penjualan baru</p>
+            <div class="add-bar">
+                <a href="{{url_for('transaksi_list')}}" class="add-transaction">Kembali Ke Daftar Transaksi</a>
+            </div>
+        </header>
+        
+        <main>
+            <h1>Transaksi Baru</h1>
+
+            <form action="{{ url_for('transaksi_baru') }}" method="post">
+                <label for="tanggal">Tanggal:</label>
+                <input type="date" id="tanggal" name="tanggal" required>
+        
+                <div id="product-list">
+                    <div class="product-item">
+                        <label for="product">Produk:</label>
+                        <input type="text" class="product-name" autocomplete="off" placeholder="Masukkan nama produk">
+                        <div class="suggestions" style="display: none;"></div>
+        
+                        <input type="hidden" name="products[][product_id]" class="product-id">
+        
+                        <label for="quantity">Jumlah:</label>
+                        <input type="number" name="products[][quantity]" min="1" required>
+        
+                        <button type="button" class="remove-product">Hapus Produk</button>
+                    </div>
+                </div>
+        
+                <button type="button" id="add-product">Tambah Produk</button>
+        
+                <button type="submit" class="simpan">Simpan Transaksi</button>
+            </form>
+        </main>
+    </div>  
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('add-product').addEventListener('click', function() {
+                let productItem = document.querySelector('.product-item').cloneNode(true);
+                productItem.querySelector('.product-name').value = '';
+                productItem.querySelector('.product-id').value = '';
+                productItem.querySelector('.suggestions').innerHTML = '';
+                document.getElementById('product-list').appendChild(productItem);
+            });
+    
+            document.getElementById('product-list').addEventListener('click', function(e) {
+                if (e.target && e.target.classList.contains('remove-product')) {
+                    e.target.parentElement.remove();
+                }
+            });
+    
+            document.getElementById('product-list').addEventListener('input', function(e) {
+                if (e.target && e.target.classList.contains('product-name')) {
+                    let input = e.target;
+                    let suggestionsBox = input.nextElementSibling;
+                    let query = input.value;
+    
+                    if (query.length > 1) {
+                        fetch(`/product_search?q=${query}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                suggestionsBox.innerHTML = '';
+                                if (data.length > 0) {
+                                    suggestionsBox.style.display = 'block';
+                                    data.forEach(product => {
+                                        let item = document.createElement('div');
+                                        item.classList.add('suggestion-item');
+                                        item.textContent = `${product.name} - Stok: ${product.stock}`;
+                                        item.dataset.productId = product.id;
+                                        item.dataset.productName = product.name;
+                                        item.dataset.productStock = product.stock;
+                                        suggestionsBox.appendChild(item);
+                                    });
+                                } else {
+                                    suggestionsBox.style.display = 'none';
+                                }
+                            });
+                    } else {
+                        suggestionsBox.style.display = 'none';
+                    }
+                }
+            });
+    
+            document.getElementById('product-list').addEventListener('click', function(e) {
+                if (e.target && e.target.classList.contains('suggestion-item')) {
+                    let item = e.target;
+                    let input = item.closest('.product-item').querySelector('.product-name');
+                    let hiddenInput = item.closest('.product-item').querySelector('.product-id');
+    
+                    input.value = item.dataset.productName;
+                    hiddenInput.value = item.dataset.productId;
+                    item.parentElement.style.display = 'none';
+                }
+            });
+        });
+    </script>
+    
+
+    <!-- <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('add-product').addEventListener('click', function() {
+                let productItem = document.querySelector('.product-item').cloneNode(true);
+                productItem.querySelector('.product-name').value = '';
+                productItem.querySelector('.product-id').value = '';
+                productItem.querySelector('.suggestions').innerHTML = '';
+                document.getElementById('product-list').appendChild(productItem);
+            });
+
+            document.getElementById('product-list').addEventListener('click', function(e) {
+                if (e.target && e.target.classList.contains('remove-product')) {
+                    e.target.parentElement.remove();
+                }
+            });
+
+            document.getElementById('product-list').addEventListener('input', function(e) {
+                if (e.target && e.target.classList.contains('product-name')) {
+                    let input = e.target;
+                    let suggestionsBox = input.nextElementSibling;
+                    let query = input.value;
+
+                    if (query.length > 1) {
+                        fetch(`{{ url_for('product_search') }}?q=${query}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                suggestionsBox.innerHTML = '';
+                                if (data.length > 0) {
+                                    suggestionsBox.style.display = 'block';
+                                    data.forEach(product => {
+                                        let item = document.createElement('div');
+                                        item.classList.add('suggestion-item');
+                                        item.textContent = `${product.name} - Stok: ${product.stock}`;
+                                        item.dataset.productId = product.id;
+                                        item.dataset.productName = product.name;
+                                        item.dataset.productStock = product.stock;
+                                        suggestionsBox.appendChild(item);
+                                    });
+                                } else {
+                                    suggestionsBox.style.display = 'none';
+                                }
+                            });
+                    } else {
+                        suggestionsBox.style.display = 'none';
+                    }
+                }
+            });
+
+            document.getElementById('product-list').addEventListener('click', function(e) {
+                if (e.target && e.target.classList.contains('suggestion-item')) {
+                    let item = e.target;
+                    let input = item.closest('.product-item').querySelector('.product-name');
+                    let hiddenInput = item.closest('.product-item').querySelector('.product-id');
+
+                    input.value = item.dataset.productName;
+                    hiddenInput.value = item.dataset.productId;
+                    item.parentElement.style.display = 'none';
+                }
+            });
+        });
+    </script> -->
+
+</body>
+</html>

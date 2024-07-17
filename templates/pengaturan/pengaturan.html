@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pengaturan/pengaturan.css') }}">
+    <title>Pengaturan</title>
+</head>
+<body>
+    {% include "navbar.html" %}
+
+    <div class="container">
+        <header>
+            <h1>Menu Pengaturan</h1>
+            <p>Profil dan Ubah Password</p>
+        </header>
+        <div class="formulir-pengaturan">
+            <h2>Pengaturan</h2>
+            <div class="pengaturan-options">
+                <a href="{{url_for('profile', user_id = user.id)}}" class="pengaturan-item">
+                    <div>
+                        <div class="icon">👤</div>
+                        <p>Profil Pengguna</p>
+                    </div>
+                </a>
+                <a href="{{url_for('ubah_password', user_id = user.id)}}" class="pengaturan-item">
+                    <div>
+                        <div class="icon">🔒</div>
+                        <p>Ubah Password</p>
+                    </div>
+                </a>                
+                <a href="{{url_for('logout')}}" class="pengaturan-item">
+                    <div >
+                        <div class="icon">🔚</div>
+                        <p>Keluar</p>
+                    </div>
+                </a>                
+            </div>
+        </div>
+    </div>
+</body>
+</html>

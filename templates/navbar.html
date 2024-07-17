@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotIS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css')}}">
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="logo">
+                <a href="#">NotIS</a>
+            </div>
+            <nav>
+                <ul class="nav-links" id="nav-links">
+                    <li><a href="{{url_for('beranda')}}">Beranda</a></li>
+                    <li><a href="{{url_for('transaksi_list')}}">Penjualan</a></li>
+                    <li><a href="{{url_for('transaksi_list_pembelian')}}">Pembelian</a></li>
+                    <li><a href="{{url_for('produk')}}">Produk</a></li>
+                    {% if session['role'] == 'pemilik' %}
+                    <li><a href="{{url_for('daftar_karyawan')}}">Karyawan</a></li>
+                    {% endif %}
+                    <li><a href="{{url_for('pengaturan')}}">Pengaturan</a></li>
+                </ul>
+            </nav>
+            <div class="search-container">
+                <input type="text" placeholder="cari...">
+                <button type="submit">🔍</button>
+            </div>
+            <div class="menu-icon" id="menu-icon">
+                ☰
+            </div>
+        </div>
+    </header>
+    <script src="{{ url_for('static', filename='js/navbar.js')}}"></script>
+</body>
+</html>
